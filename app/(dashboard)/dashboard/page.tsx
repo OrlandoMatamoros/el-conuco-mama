@@ -77,9 +77,7 @@ export default function Dashboard() {
         break
     }
     
-    const totals = await getTotalsByPeriod(startDate, endDate)
-    console.log('Datos para período:', period, totals)
-    setData(totals)
+    const processedData = getTotalsByPeriod([], selectedPeriod)
     setLoading(false)
   }
 
