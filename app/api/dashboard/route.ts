@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import ExcelOneDriveService from '@/lib/services/ExcelOneDriveService'
+import ConucoExcelService from '@/lib/services/ConucoExcelService'
 
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
     const period = searchParams.get('period') || 'mes'
     
-    const excelService = new ExcelOneDriveService()
+    const excelService = new ConucoExcelService()
     const data = await excelService.getDashboardByPeriod(period)
     
     return NextResponse.json({
@@ -24,10 +24,9 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// Endpoint para actualización desde n8n
 export async function POST(request: NextRequest) {
   try {
-    const excelService = new ExcelOneDriveService()
+    const excelService = new ConucoExcelService()
     await excelService.refreshData()
     
     return NextResponse.json({

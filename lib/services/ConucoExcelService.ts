@@ -1,95 +1,114 @@
-// Servicio para leer el Excel del Conuco desde OneDrive
-export class ConucoExcelService {
-  private shareUrl: string;
-  private cachedData: any = null;
-  private lastFetch: Date | null = null;
+import * as XLSX from 'xlsx'
 
-  constructor() {
-    this.shareUrl = process.env.ONEDRIVE_SHARE_URL || '';
-  }
+interface DashboardMetrics {
+  totalSales: number
+  totalExpenses: number
+  grossMargin: number
+  netProfit: number
+  uniqueCustomers: number
+  averageTicket: number
+  productsSold: number
+  salesGrowth: number
+  expenseGrowth: number
+  marginGrowth: number
+}
 
-  async getExcelData() {
-    try {
-      console.log('📊 Obteniendo datos del Excel...');
-      
-      // Convertir el link para descarga directa
-      // De: https://1drv.ms/x/c/...
-      // A: https://onedrive.live.com/download?cid=...&resid=...
-      
-      const downloadUrl = this.shareUrl
-        .replace('https://1drv.ms/x/c/', 'https://onedrive.live.com/download?cid=')
-        .replace('/E', '&resid=0B981E5C9846900F!E')
-        + '&authkey=!AMQQnlo15s6jqwE';
-      
-      console.log('📥 Descargando desde OneDrive...');
-      
-      // Por ahora retornar datos de ejemplo
-      // El download real requiere manejo de CORS
-      return this.getMockDataBasedOnRealStructure();
-      
-    } catch (error) {
-      console.error('Error:', error);
-      return this.getMockDataBasedOnRealStructure();
-    }
-  }
-  
-  // Datos basados en la estructura real de tu Excel
-  private getMockDataBasedOnRealStructure() {
-    return {
-      kpis: {
-        ventasTotales: 2456789.50,
-        gastosTotales: 1845678.25,
-        margenBruto: 24.9,
-        clientesUnicos: 234,
-        ticketPromedio: 10498.68,
-        productosVendidos: 1456
-      },
-      ventasPorPeriodo: {
-        hoy: 85000,
-        ayer: 78000,
-        semanaActual: 485000,
-        semanaAnterior: 425000,
-        mesActual: 1850000,
-        mesAnterior: 1620000
-      },
-      productos: [
-        { nombre: 'Pollo Fresco', ventas: 145678, unidades: 234, margen: 28.5 },
-        { nombre: 'Res Premium', ventas: 132456, unidades: 156, margen: 32.1 },
-        { nombre: 'Cerdo', ventas: 98765, unidades: 189, margen: 26.8 },
-        { nombre: 'Vegetales', ventas: 87654, unidades: 456, margen: 35.2 },
-        { nombre: 'Lácteos', ventas: 65432, unidades: 234, margen: 22.3 }
-      ],
-      comparaciones: {
-        ventasVsAnterior: 15.1,
-        gastosVsAnterior: 7.1,
-        margenVsAnterior: 2.6,
-        clientesVsAnterior: 8.5
-      }
-    };
-  }
-  
-  async getDataByPeriod(period1: string, period2?: string) {
-    const data = await this.getExcelData();
-    
-    // Calcular comparaciones entre períodos
-    if (period2) {
-      const valor1 = data.ventasPorPeriodo[period1] || 0;
-      const valor2 = data.ventasPorPeriodo[period2] || 0;
-      const variacion = ((valor1 - valor2) / valor2 * 100).toFixed(1);
-      
-      return {
-        ...data,
-        comparacion: {
-          periodo1: { nombre: period1, valor: valor1 },
-          periodo2: { nombre: period2, valor: valor2 },
-          variacion,
-          tendencia: valor1 > valor2 ? 'up' : 'down'
-        }
-      };
-    }
-    
-    return data;
+interface PeriodComparison {
+  current: DashboardMetrics
+  previous: DashboardMetrics
+  change: {
+    salesChange: number
+    expenseChange: number
+    marginChange: number
+    percentageChange: number
   }
 }
 
-export default ConucoExcelService;
+export class ConucoExcelService {
+  private shareLink: string
+  private cachedData: any = null
+  private lastFetch: Date | null = null
+  private cacheTimeout = 5 * 60 * 1000 // 5 minutos
+
+  constructor() {
+    this.shareLink = process.env.EXCEL_SHARE_LINK || 'https://1drv.ms/x/c/0b981e5c9846900f/EXZjG-TaMTRNh8FYnfm0o6sB90Ca2PYnHc7H22fWGNohZA'
+  }
+
+  async getDashboardByPeriod(period: string = 'mes'): Promise<PeriodComparison> {
+    try {
+      // Por ahora usamos datos simulados mientras configuramos el acceso real
+      // En producción, aquí se conectaría con OneDrive API
+      return this.getSimulatedData(period)
+    } catch (error) {
+      console.error('Error obteniendo datos:', error)
+      return this.getSimulatedData(period)
+    }
+  }
+
+  private getSimulatedData(period: string): PeriodComparison {
+    // Datos base que varían según el período
+    const periodMultipliers = {
+      'dia': { current: 1.0, previous: 0.95, variance: 0.1 },
+      'semana': { current: 7.0, previous: 6.8, variance: 0.15 },
+      'mes': { current: 30.0, previous: 29.0, variance: 0.2 },
+      'trimestre': { current: 90.0, previous: 87.0, variance: 0.25 },
+      'año': { current: 365.0, previous: 350.0, variance: 0.3 }
+    }
+
+    const multiplier = periodMultipliers[period] || periodMultipliers['mes']
+    const baseDaily = 8000 // Ventas diarias base
+
+    const current: DashboardMetrics = {
+      totalSales: baseDaily * multiplier.current * (1 + Math.random() * multiplier.variance),
+      totalExpenses: baseDaily * multiplier.current * 0.75 * (1 + Math.random() * multiplier.variance),
+      grossMargin: 24.9 + Math.random() * 5,
+      netProfit: baseDaily * multiplier.current * 0.25,
+      uniqueCustomers: Math.floor(15 * multiplier.current),
+      averageTicket: 1989.75 + Math.random() * 500,
+      productsSold: Math.floor(250 * multiplier.current),
+      salesGrowth: 15.3 + Math.random() * 10 - 5,
+      expenseGrowth: 8.7 + Math.random() * 8 - 4,
+      marginGrowth: 2.1 + Math.random() * 3 - 1.5
+    }
+
+    const previous: DashboardMetrics = {
+      totalSales: baseDaily * multiplier.previous,
+      totalExpenses: baseDaily * multiplier.previous * 0.78,
+      grossMargin: 22.8,
+      netProfit: baseDaily * multiplier.previous * 0.22,
+      uniqueCustomers: Math.floor(14 * multiplier.previous),
+      averageTicket: 1850.50,
+      productsSold: Math.floor(240 * multiplier.previous),
+      salesGrowth: 12.1,
+      expenseGrowth: 7.2,
+      marginGrowth: 1.5
+    }
+
+    const change = {
+      salesChange: ((current.totalSales - previous.totalSales) / previous.totalSales) * 100,
+      expenseChange: ((current.totalExpenses - previous.totalExpenses) / previous.totalExpenses) * 100,
+      marginChange: current.grossMargin - previous.grossMargin,
+      percentageChange: ((current.netProfit - previous.netProfit) / previous.netProfit) * 100
+    }
+
+    return { current, previous, change }
+  }
+
+  async getSourceTables() {
+    // Retornar estructura de tablas simuladas
+    return {
+      ventas: [],
+      costos: [],
+      productos: [],
+      clientes: []
+    }
+  }
+
+  async refreshData() {
+    this.cachedData = null
+    this.lastFetch = null
+    return true
+  }
+}
+
+export default ConucoExcelService
