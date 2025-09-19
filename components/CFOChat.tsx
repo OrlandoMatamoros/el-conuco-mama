@@ -12,7 +12,7 @@ export default function CFOChat({ period = 'mes' }: { period?: string }) {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: '¡Hola! Soy tu CFO Virtual. ¿En qué puedo ayudarte con el análisis financiero?',
+      content: '¡Hola! Soy tu CFO Virtual. Puedo analizar las ventas, márgenes, gastos y métricas del negocio. ¿En qué te puedo ayudar?',
       timestamp: new Date()
     }
   ])
@@ -55,13 +55,13 @@ export default function CFOChat({ period = 'mes' }: { period?: string }) {
       
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: data.answer,
+        content: data.answer || 'Lo siento, no pude procesar tu pregunta.',
         timestamp: new Date()
       }])
     } catch (error) {
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: 'Lo siento, hubo un error. Por favor intenta de nuevo.',
+        content: 'Error al conectar con el servicio. Por favor intenta de nuevo.',
         timestamp: new Date()
       }])
     } finally {
@@ -70,48 +70,47 @@ export default function CFOChat({ period = 'mes' }: { period?: string }) {
   }
 
   const quickQuestions = [
-    '¿Cómo van las ventas este mes?',
-    '¿Cuál es nuestro margen actual?',
-    '¿Qué productos son más rentables?',
-    '¿Deberíamos preocuparnos por algo?'
+    '¿Cómo van las ventas?',
+    '¿Cuál es el margen?',
+    'Análisis de gastos',
+    'Reporte de clientes'
   ]
 
   return (
-    <div className="flex flex-col h-full bg-white rounded-lg shadow-lg">
+    <div className="flex flex-col h-[600px] bg-white rounded-lg shadow-lg">
       {/* Header */}
       <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white p-4 rounded-t-lg">
-        <h3 className="text-lg font-bold">🤖 CFO Virtual</h3>
-        <p className="text-sm opacity-90">Análisis inteligente de tus finanzas</p>
+        <h3 className="text-lg font-bold flex items-center gap-2">
+          <span className="text-2xl">🤖</span> CFO Virtual
+        </h3>
+        <p className="text-sm opacity-90">Análisis inteligente del período: {period}</p>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 max-h-96">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.map((message, index) => (
           <div
             key={index}
             className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             <div
-              className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+              className={`max-w-[80%] px-4 py-2 rounded-lg ${
                 message.role === 'user'
                   ? 'bg-green-600 text-white'
                   : 'bg-gray-100 text-gray-800'
               }`}
             >
-              <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-              <p className="text-xs opacity-70 mt-1">
-                {message.timestamp.toLocaleTimeString()}
-              </p>
+              <p className="text-sm">{message.content}</p>
             </div>
           </div>
         ))}
         {loading && (
           <div className="flex justify-start">
             <div className="bg-gray-100 px-4 py-2 rounded-lg">
-              <div className="flex space-x-2">
+              <div className="flex space-x-1">
                 <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-100"></div>
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-200"></div>
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
               </div>
             </div>
           </div>
@@ -120,14 +119,13 @@ export default function CFOChat({ period = 'mes' }: { period?: string }) {
       </div>
 
       {/* Quick Questions */}
-      <div className="px-4 py-2 border-t">
-        <p className="text-xs text-gray-500 mb-2">Preguntas rápidas:</p>
+      <div className="px-4 py-2 border-t bg-gray-50">
         <div className="flex flex-wrap gap-2">
           {quickQuestions.map((q, i) => (
             <button
               key={i}
               onClick={() => setInput(q)}
-              className="text-xs bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded-full transition-colors"
+              className="text-xs bg-white hover:bg-gray-100 px-3 py-1 rounded-full border transition-colors"
             >
               {q}
             </button>
@@ -137,13 +135,13 @@ export default function CFOChat({ period = 'mes' }: { period?: string }) {
 
       {/* Input */}
       <div className="border-t p-4">
-        <div className="flex space-x-2">
+        <div className="flex gap-2">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-            placeholder="Pregúntame sobre las finanzas..."
+            placeholder="Escribe tu pregunta..."
             className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
             disabled={loading}
           />
