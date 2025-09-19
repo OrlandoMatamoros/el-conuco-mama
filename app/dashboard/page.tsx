@@ -2,9 +2,27 @@
 
 import React, { useState, useEffect } from 'react'
 
-// Estructura basada en el Excel real
+// Paleta de colores del Conuco
+const colors = {
+  primary: '#4AED3B',      // Verde brillante principal
+  secondary: '#E1ED3B',    // Amarillo lima
+  accent: '#3BED6B',       // Verde agua
+  light: '#BDED8A',        // Verde claro
+  medium: '#97ED3B',       // Verde medio
+  warm: '#F0E47D',         // Amarillo cálido
+  
+  // Para gráficos y datos
+  chart: [
+    '#4AED3B',  // Verde brillante
+    '#E1ED3B',  // Amarillo lima
+    '#3BED6B',  // Verde agua
+    '#97ED3B',  // Verde medio
+    '#F0E47D',  // Amarillo cálido
+    '#BDED8A'   // Verde claro
+  ]
+}
+
 interface DashboardData {
-  // KPIs principales (de la hoja Dashboard)
   ventasTotales: number
   costosTotales: number
   margenBruto: number
@@ -13,13 +31,10 @@ interface DashboardData {
   transacciones: number
   ticketPromedio: number
   productosVendidos: number
-  
-  // Comparaciones (calculadas con DAX)
   ventasVsPeriodoAnterior: number
   costosVsPeriodoAnterior: number
   margenVsPeriodoAnterior: number
   
-  // Datos por período
   datosPorPeriodo: {
     [key: string]: {
       ventas: number
@@ -29,7 +44,6 @@ interface DashboardData {
     }
   }
   
-  // Top productos
   topProductos: Array<{
     producto: string
     ventas: number
@@ -38,7 +52,6 @@ interface DashboardData {
     categoria: string
   }>
   
-  // Ventas por categoría
   ventasPorCategoria: Array<{
     categoria: string
     ventas: number
@@ -52,7 +65,6 @@ export default function DashboardConuco() {
   const [comparePeriod, setComparePeriod] = useState('mes-anterior')
   const [data, setData] = useState<DashboardData | null>(null)
   
-  // Períodos disponibles (como en el Excel)
   const periods = [
     { value: 'hoy', label: 'Hoy' },
     { value: 'ayer', label: 'Ayer' },
@@ -66,7 +78,6 @@ export default function DashboardConuco() {
     { value: 'año-anterior', label: 'Año Anterior' }
   ]
   
-  // Cargar datos cuando cambian los períodos (como los slicers del Excel)
   useEffect(() => {
     loadDashboardData()
   }, [selectedPeriod, comparePeriod])
@@ -74,8 +85,6 @@ export default function DashboardConuco() {
   const loadDashboardData = async () => {
     setLoading(true)
     
-    // Simular datos basados en la estructura del Excel
-    // En producción, esto vendría del API que lee el Excel real
     const mockData: DashboardData = {
       ventasTotales: 2456789.50,
       costosTotales: 1845678.25,
@@ -85,7 +94,6 @@ export default function DashboardConuco() {
       transacciones: 1456,
       ticketPromedio: 1687.22,
       productosVendidos: 8956,
-      
       ventasVsPeriodoAnterior: 15.3,
       costosVsPeriodoAnterior: 8.7,
       margenVsPeriodoAnterior: 2.6,
@@ -136,10 +144,10 @@ export default function DashboardConuco() {
   
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-green-50 to-yellow-50">
         <div className="text-center">
-          <div className="animate-spin h-12 w-12 border-4 border-green-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-gray-600">Cargando dashboard...</p>
+          <div className="animate-spin h-12 w-12 border-4 border-[#4AED3B] border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-gray-700 font-medium">Cargando dashboard...</p>
         </div>
       </div>
     )
@@ -148,16 +156,16 @@ export default function DashboardConuco() {
   if (!data) return null
   
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-yellow-50 to-green-50">
+      {/* Header con gradiente */}
+      <div className="bg-gradient-to-r from-[#4AED3B] via-[#97ED3B] to-[#E1ED3B] shadow-lg">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Dashboard - El Conuco de Mamá</h1>
-              <p className="text-sm text-gray-600">Sistema de Análisis de Ventas y Márgenes</p>
+              <p className="text-sm text-gray-800">Sistema de Análisis de Ventas y Márgenes</p>
             </div>
-            <div className="text-sm text-gray-500">
+            <div className="text-sm text-gray-800 font-medium">
               Última actualización: {new Date().toLocaleString('es-DO')}
             </div>
           </div>
@@ -165,9 +173,12 @@ export default function DashboardConuco() {
       </div>
       
       <div className="max-w-7xl mx-auto px-4 py-6">
-        {/* SEGMENTADORES DE TIEMPO - Como los Slicers del Excel */}
-        <div className="bg-white rounded-lg shadow mb-6 p-6">
-          <h2 className="text-lg font-bold mb-4 text-gray-900">Segmentadores de Período</h2>
+        {/* SEGMENTADORES DE TIEMPO */}
+        <div className="bg-white rounded-xl shadow-lg mb-6 p-6 border-2 border-[#BDED8A]">
+          <h2 className="text-lg font-bold mb-4 text-gray-900 flex items-center">
+            <div className="w-4 h-4 bg-[#4AED3B] rounded-full mr-2"></div>
+            Segmentadores de Período
+          </h2>
           <div className="grid md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -176,7 +187,7 @@ export default function DashboardConuco() {
               <select 
                 value={selectedPeriod}
                 onChange={(e) => setSelectedPeriod(e.target.value)}
-                className="w-full p-3 border-2 border-green-500 rounded-lg focus:ring-2 focus:ring-green-600 font-medium"
+                className="w-full p-3 border-2 border-[#4AED3B] rounded-lg focus:ring-2 focus:ring-[#3BED6B] font-medium bg-green-50"
               >
                 {periods.map(p => (
                   <option key={p.value} value={p.value}>{p.label}</option>
@@ -191,7 +202,7 @@ export default function DashboardConuco() {
               <select 
                 value={comparePeriod}
                 onChange={(e) => setComparePeriod(e.target.value)}
-                className="w-full p-3 border-2 border-blue-500 rounded-lg focus:ring-2 focus:ring-blue-600 font-medium"
+                className="w-full p-3 border-2 border-[#E1ED3B] rounded-lg focus:ring-2 focus:ring-[#F0E47D] font-medium bg-yellow-50"
               >
                 {periods.map(p => (
                   <option key={p.value} value={p.value}>{p.label}</option>
@@ -200,86 +211,109 @@ export default function DashboardConuco() {
             </div>
             
             <div className="flex items-end">
-              <button className="w-full p-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition">
-                🔄 Actualizar Datos
+              <button 
+                className="w-full p-3 bg-gradient-to-r from-[#4AED3B] to-[#3BED6B] text-white rounded-lg font-bold hover:shadow-lg transform hover:scale-105 transition-all"
+                onClick={loadDashboardData}
+              >
+                Actualizar Datos
               </button>
             </div>
           </div>
         </div>
         
-        {/* KPIs PRINCIPALES - Primera fila del Excel */}
+        {/* KPIs PRINCIPALES */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-xl shadow-lg p-6 border-t-4 border-[#4AED3B] hover:shadow-xl transition-shadow">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-gray-600 text-sm">Ventas Totales</span>
-              <span className={`text-sm font-bold ${data.ventasVsPeriodoAnterior > 0 ? 'text-green-600' : 'text-red-600'}`}>
+              <span className="text-gray-600 text-sm font-medium">Ventas Totales</span>
+              <span className={`text-sm font-bold px-2 py-1 rounded-full ${
+                data.ventasVsPeriodoAnterior > 0 
+                  ? 'bg-[#BDED8A] text-green-800' 
+                  : 'bg-red-100 text-red-800'
+              }`}>
                 {formatPercentage(data.ventasVsPeriodoAnterior)}
               </span>
             </div>
             <p className="text-2xl font-bold text-gray-900">{formatCurrency(data.ventasTotales)}</p>
+            <div className="mt-2 h-1 bg-gradient-to-r from-[#4AED3B] to-[#97ED3B] rounded-full"></div>
           </div>
           
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-xl shadow-lg p-6 border-t-4 border-[#E1ED3B] hover:shadow-xl transition-shadow">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-gray-600 text-sm">Costos Totales</span>
-              <span className={`text-sm font-bold ${data.costosVsPeriodoAnterior > 0 ? 'text-red-600' : 'text-green-600'}`}>
+              <span className="text-gray-600 text-sm font-medium">Costos Totales</span>
+              <span className={`text-sm font-bold px-2 py-1 rounded-full ${
+                data.costosVsPeriodoAnterior < 10 
+                  ? 'bg-[#BDED8A] text-green-800' 
+                  : 'bg-[#F0E47D] text-yellow-800'
+              }`}>
                 {formatPercentage(data.costosVsPeriodoAnterior)}
               </span>
             </div>
             <p className="text-2xl font-bold text-gray-900">{formatCurrency(data.costosTotales)}</p>
+            <div className="mt-2 h-1 bg-gradient-to-r from-[#E1ED3B] to-[#F0E47D] rounded-full"></div>
           </div>
           
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-xl shadow-lg p-6 border-t-4 border-[#3BED6B] hover:shadow-xl transition-shadow">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-gray-600 text-sm">Margen Bruto</span>
-              <span className={`text-sm font-bold ${data.margenVsPeriodoAnterior > 0 ? 'text-green-600' : 'text-red-600'}`}>
+              <span className="text-gray-600 text-sm font-medium">Margen Bruto</span>
+              <span className={`text-sm font-bold px-2 py-1 rounded-full ${
+                data.margenVsPeriodoAnterior > 0 
+                  ? 'bg-[#BDED8A] text-green-800' 
+                  : 'bg-red-100 text-red-800'
+              }`}>
                 {formatPercentage(data.margenVsPeriodoAnterior)}
               </span>
             </div>
             <p className="text-2xl font-bold text-gray-900">{formatCurrency(data.margenBruto)}</p>
-            <p className="text-sm text-gray-600">{data.margenPorcentaje.toFixed(1)}% del total</p>
+            <p className="text-sm text-gray-600 font-medium">{data.margenPorcentaje.toFixed(1)}% del total</p>
+            <div className="mt-2 h-1 bg-gradient-to-r from-[#3BED6B] to-[#4AED3B] rounded-full"></div>
           </div>
           
-          <div className="bg-white rounded-lg shadow p-6">
-            <span className="text-gray-600 text-sm">Ticket Promedio</span>
+          <div className="bg-white rounded-xl shadow-lg p-6 border-t-4 border-[#97ED3B] hover:shadow-xl transition-shadow">
+            <span className="text-gray-600 text-sm font-medium">Ticket Promedio</span>
             <p className="text-2xl font-bold text-gray-900">{formatCurrency(data.ticketPromedio)}</p>
-            <p className="text-sm text-gray-600">{data.transacciones} transacciones</p>
+            <p className="text-sm text-gray-600 font-medium">{data.transacciones} transacciones</p>
+            <div className="mt-2 h-1 bg-gradient-to-r from-[#97ED3B] to-[#BDED8A] rounded-full"></div>
           </div>
         </div>
         
         {/* TABLAS Y GRÁFICOS */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Top Productos */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="p-6 border-b">
-              <h3 className="text-lg font-bold text-gray-900">Top 8 Productos</h3>
+          <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+            <div className="p-6 border-b bg-gradient-to-r from-[#4AED3B] to-[#97ED3B]">
+              <h3 className="text-lg font-bold text-white">Top 8 Productos</h3>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50">
+                <thead className="bg-[#F0E47D] bg-opacity-30">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Ventas</th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Unidades</th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Margen %</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Producto</th>
+                    <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase">Ventas</th>
+                    <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase">Unidades</th>
+                    <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase">Margen %</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {data.topProductos.map((producto, idx) => (
-                    <tr key={idx} className="hover:bg-gray-50">
+                    <tr key={idx} className="hover:bg-green-50 transition-colors">
                       <td className="px-4 py-3">
                         <div>
                           <p className="font-medium text-gray-900">{producto.producto}</p>
                           <p className="text-xs text-gray-500">{producto.categoria}</p>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-right font-medium">{formatCurrency(producto.ventas)}</td>
-                      <td className="px-4 py-3 text-right">{producto.unidades.toLocaleString()}</td>
+                      <td className="px-4 py-3 text-right font-bold text-gray-800">
+                        {formatCurrency(producto.ventas)}
+                      </td>
+                      <td className="px-4 py-3 text-right font-medium">
+                        {producto.unidades.toLocaleString()}
+                      </td>
                       <td className="px-4 py-3 text-right">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          producto.margen > 30 ? 'bg-green-100 text-green-800' : 
-                          producto.margen > 20 ? 'bg-yellow-100 text-yellow-800' : 
-                          'bg-red-100 text-red-800'
+                        <span className={`inline-flex px-2 py-1 text-xs font-bold rounded-full ${
+                          producto.margen > 30 ? 'bg-[#4AED3B] text-white' : 
+                          producto.margen > 20 ? 'bg-[#E1ED3B] text-gray-800' : 
+                          'bg-[#F0E47D] text-gray-800'
                         }`}>
                           {producto.margen}%
                         </span>
@@ -292,21 +326,24 @@ export default function DashboardConuco() {
           </div>
           
           {/* Ventas por Categoría */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="p-6 border-b">
-              <h3 className="text-lg font-bold text-gray-900">Distribución por Categoría</h3>
+          <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+            <div className="p-6 border-b bg-gradient-to-r from-[#E1ED3B] to-[#F0E47D]">
+              <h3 className="text-lg font-bold text-gray-800">Distribución por Categoría</h3>
             </div>
             <div className="p-6">
               {data.ventasPorCategoria.map((cat, idx) => (
                 <div key={idx} className="mb-4">
                   <div className="flex justify-between text-sm mb-1">
-                    <span className="font-medium">{cat.categoria}</span>
-                    <span>{formatCurrency(cat.ventas)} ({cat.porcentaje}%)</span>
+                    <span className="font-bold text-gray-800">{cat.categoria}</span>
+                    <span className="font-medium">{formatCurrency(cat.ventas)} ({cat.porcentaje}%)</span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-6">
+                  <div className="w-full bg-gray-200 rounded-full h-7 overflow-hidden">
                     <div 
-                      className="bg-green-600 h-6 rounded-full flex items-center justify-center text-xs text-white font-semibold"
-                      style={{ width: `${cat.porcentaje}%` }}
+                      className="h-full rounded-full flex items-center justify-center text-xs text-white font-bold shadow-inner"
+                      style={{ 
+                        width: `${cat.porcentaje}%`,
+                        background: `linear-gradient(90deg, ${colors.chart[idx % colors.chart.length]}, ${colors.chart[(idx + 1) % colors.chart.length]})`
+                      }}
                     >
                       {cat.porcentaje}%
                     </div>
