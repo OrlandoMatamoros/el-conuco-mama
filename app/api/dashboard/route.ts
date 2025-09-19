@@ -1,30 +1,44 @@
-import { NextRequest, NextResponse } from 'next/server';
-import ConucoExcelService from '@/lib/services/ConucoExcelService';
-
-const service = new ConucoExcelService();
+import { NextRequest, NextResponse } from 'next/server'
+import ExcelOneDriveService from '@/lib/services/ExcelOneDriveService'
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const period1 = searchParams.get('period1') || 'mesActual';
-    const period2 = searchParams.get('period2') || 'mesAnterior';
+    const searchParams = request.nextUrl.searchParams
+    const period = searchParams.get('period') || 'mes'
     
-    const data = await service.getDataByPeriod(period1, period2);
+    const excelService = new ExcelOneDriveService()
+    const data = await excelService.getDashboardByPeriod(period)
     
     return NextResponse.json({
       success: true,
+      period,
       data,
-      periods: { period1, period2 },
       timestamp: new Date().toISOString()
-    });
-    
-  } catch (error: any) {
+    })
+  } catch (error) {
+    console.error('Error en API dashboard:', error)
     return NextResponse.json(
-      { 
-        success: false, 
-        error: error.message || 'Error obteniendo datos'
-      },
+      { success: false, error: 'Error obteniendo datos' },
       { status: 500 }
-    );
+    )
+  }
+}
+
+// Endpoint para actualización desde n8n
+export async function POST(request: NextRequest) {
+  try {
+    const excelService = new ExcelOneDriveService()
+    await excelService.refreshData()
+    
+    return NextResponse.json({
+      success: true,
+      message: 'Datos actualizados correctamente',
+      timestamp: new Date().toISOString()
+    })
+  } catch (error) {
+    return NextResponse.json(
+      { success: false, error: 'Error actualizando datos' },
+      { status: 500 }
+    )
   }
 }
