@@ -100,3 +100,5 @@ export default function HomePage() {
     </div>
   )
 }
+
+// Agregar link al dashboard en la navegación principal

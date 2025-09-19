@@ -1,109 +1,66 @@
-import { google } from 'googleapis'
-
-const SPREADSHEET_ID = '1tGGevUx3b2xYcsVSum8mmbLC55XfM4QA'
-
-export interface DashboardData {
-  ventas: number
-  gastos: number
-  margen: number
-  productos: any[]
-  periodos: string[]
-  comparativas: any
-}
-
 export class GoogleSheetsService {
-  private sheets: any
+  private apiKey: string
+  private spreadsheetId: string
   
   constructor() {
-    // Configuración para acceso público (solo lectura)
-    this.sheets = google.sheets({
-      version: 'v4',
-      auth: process.env.GOOGLE_API_KEY
-    })
+    this.apiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY || ''
+    this.spreadsheetId = '1tGGevUx3b2xYcsVSum8mmbLC55XfM4QA'
   }
   
-  async getDashboardData(periodo?: string): Promise<DashboardData> {
+  async getDashboardData(periodo?: string) {
     try {
-      // Leer datos del Dashboard
-      const response = await this.sheets.spreadsheets.values.batchGet({
-        spreadsheetId: SPREADSHEET_ID,
-        ranges: [
-          'Dashboard!A1:Z100',  // Rango principal
-          'Datos!A:Z',          // Datos fuente
-        ]
-      })
+      // URL de la API de Google Sheets v4
+      const range = 'Dashboard!A1:Z100'
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${this.spreadsheetId}/values/${range}?key=${this.apiKey}`
       
-      const dashboardRange = response.data.valueRanges[0].values
-      const datosRange = response.data.valueRanges[1].values
+      const response = await fetch(url)
+      const data = await response.json()
       
-      // Procesar datos según el período seleccionado
-      return this.processData(dashboardRange, datosRange, periodo)
+      if (!response.ok) {
+        throw new Error(data.error?.message || 'Error al obtener datos')
+      }
+      
+      return this.processSheetData(data.values)
     } catch (error) {
-      console.error('Error leyendo Google Sheets:', error)
-      return this.getMockData() // Datos de respaldo
+      console.error('Error:', error)
+      return this.getMockData()
     }
   }
   
-  private processData(dashboard: any[], datos: any[], periodo?: string): DashboardData {
-    // Aquí procesamos los datos según el período
+  private processSheetData(values: any[][]) {
+    // Procesar los datos del sheet
+    // Asumiendo que la estructura es similar a tu Excel
     return {
-      ventas: this.extractValue(dashboard, 'B2') || 0,
-      gastos: this.extractValue(dashboard, 'B3') || 0,
-      margen: this.extractValue(dashboard, 'B4') || 0,
-      productos: this.extractProducts(datos),
-      periodos: this.extractPeriods(datos),
-      comparativas: this.calculateComparisons(datos, periodo)
+      ventas: parseFloat(values[1]?.[1] || 0),
+      gastos: parseFloat(values[2]?.[1] || 0),
+      margen: parseFloat(values[3]?.[1] || 0),
+      productos: this.extractProducts(values),
+      timestamp: new Date().toISOString()
     }
   }
   
-  private extractValue(data: any[], cell: string): number {
-    // Convertir notación de celda a índices
-    const col = cell.charCodeAt(0) - 65
-    const row = parseInt(cell.slice(1)) - 1
-    return parseFloat(data[row]?.[col] || 0)
-  }
-  
-  private extractProducts(data: any[]): any[] {
-    // Extraer lista de productos
-    return data.slice(1).map(row => ({
-      nombre: row[0],
-      ventas: parseFloat(row[1] || 0),
-      unidades: parseInt(row[2] || 0),
-      margen: parseFloat(row[3] || 0)
-    }))
-  }
-  
-  private extractPeriods(data: any[]): string[] {
-    // Extraer períodos únicos
-    const periods = new Set<string>()
-    data.slice(1).forEach(row => {
-      if (row[4]) periods.add(row[4]) // Columna de fecha/período
-    })
-    return Array.from(periods).sort()
-  }
-  
-  private calculateComparisons(data: any[], periodo?: string): any {
-    // Calcular comparativas entre períodos
-    return {
-      variacion: 0,
-      tendencia: 'stable',
-      proyeccion: 0
+  private extractProducts(values: any[][]) {
+    // Extraer productos desde fila 10 en adelante (ajustar según tu sheet)
+    const products = []
+    for (let i = 10; i < values.length && i < 20; i++) {
+      if (values[i]?.[0]) {
+        products.push({
+          nombre: values[i][0],
+          ventas: parseFloat(values[i][1] || 0),
+          unidades: parseInt(values[i][2] || 0)
+        })
+      }
     }
+    return products
   }
   
-  private getMockData(): DashboardData {
-    // Datos de respaldo si falla la conexión
+  private getMockData() {
     return {
       ventas: 245678.50,
       gastos: 184567.25,
       margen: 24.9,
       productos: [],
-      periodos: ['Enero', 'Febrero', 'Marzo'],
-      comparativas: {
-        variacion: 15.3,
-        tendencia: 'up',
-        proyeccion: 280000
-      }
+      timestamp: new Date().toISOString()
     }
   }
 }
