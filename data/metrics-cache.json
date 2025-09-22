@@ -1,1 +1,11 @@
-{"ventas": 525342.54, "gastos": 62383, "costos": 349147.44, "payroll": 92758.54, "timestamp": "2025-09-19T21:33:19+00:00"}
+{
+  "ventas": 525342.54,
+  "gastos": 62383,
+  "costos": 349147.44,
+  "payroll": 92758.54,
+  "timestamp": "2025-09-19T21:33:19+00:00",
+  "margenBruto": "33.54",
+  "margenNeto": "4.01",
+  "utilidad": 21053.560000000056,
+  "totalEgresos": 504288.98
+}
