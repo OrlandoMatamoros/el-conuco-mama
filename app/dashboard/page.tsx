@@ -1,42 +1,27 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 
 export default function ConucoDashboard() {
-  // DATOS REALES ACTUALIZADOS AL 19/09/2025
-  const datosReales = {
-    ventas: 525342.54,
-    gastos: 62383.00,
-    costos: 351924.59,
-    payroll: 95738.54,
-    totalEgresos: 510046.13,
-    utilidadBruta: 15296.41,
-    rentabilidad: 2.91,
-    ventasYTD: 525342.54,
-    egresosYTD: 510046.13,
-    utilidadYTD: 15296.41,
-    rentabilidadYTD: 2.91
-  }
+  const [metrics, setMetrics] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [question, setQuestion] = useState('')
+  const [cfoResponse, setCfoResponse] = useState('')
+  const [askingCFO, setAskingCFO] = useState(false)
+  const [chatHistory, setChatHistory] = useState<any[]>([])
 
-  const ventasPorSemana = [
-    { semana: 'S-37', ventas: 2496.48, tipo: 'actual' },
-    { semana: 'S-32', ventas: 13963.70, tipo: 'pasada' },
-    { semana: 'S-31', ventas: 14026.93, tipo: 'pasada' },
-    { semana: 'S-27', ventas: 13712.20, tipo: 'pasada' },
-    { semana: 'S-26', ventas: 13407.13, tipo: 'pasada' },
-    { semana: 'S-25', ventas: 13364.42, tipo: 'pasada' },
-    { semana: 'S-24', ventas: 13850.99, tipo: 'pasada' },
-    { semana: 'S-22', ventas: 13901.48, tipo: 'pasada' },
-    { semana: 'S-16', ventas: 17080.55, tipo: 'mejor' },
-    { semana: 'S-15', ventas: 16022.68, tipo: 'buena' },
-    { semana: 'S-14', ventas: 15856.50, tipo: 'buena' }
-  ]
-
-  const distribucionEgresos = [
-    { concepto: 'Costos', porcentaje: 69.00, monto: datosReales.costos, color: '#ef4444' },
-    { concepto: 'Payroll', porcentaje: 18.77, monto: datosReales.payroll, color: '#3b82f6' },
-    { concepto: 'Gastos', porcentaje: 12.23, monto: datosReales.gastos, color: '#f59e0b' }
-  ]
+  useEffect(() => {
+    // Primero sincronizar desde Excel, luego cargar métricas
+    fetch('/api/metrics/sync-from-excel')
+      .then(() => fetch('/api/metrics/current'))
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setMetrics(data.data)
+        }
+        setLoading(false)
+      })
+  }, [])
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('es-DO', {
@@ -46,10 +31,67 @@ export default function ConucoDashboard() {
     }).format(value)
   }
 
-  const [selectedPeriod, setSelectedPeriod] = useState('ytd')
+  const askCFO = async () => {
+    if (!question.trim()) return
+    
+    setAskingCFO(true)
+    const currentQuestion = question
+    setQuestion('') // Limpiar automáticamente la barra
+    
+    try {
+      const response = await fetch('/api/cfo/ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: currentQuestion })
+      })
+      
+      const data = await response.json()
+      
+      if (data.success) {
+        setCfoResponse(data.response)
+        // Agregar al historial
+        setChatHistory([...chatHistory, {
+          q: currentQuestion,
+          a: data.response,
+          time: new Date().toLocaleTimeString()
+        }])
+      } else {
+        setCfoResponse('Error al procesar la pregunta')
+      }
+    } catch (error) {
+      setCfoResponse('Error de conexión')
+    } finally {
+      setAskingCFO(false)
+    }
+  }
+
+  const clearChat = () => {
+    setCfoResponse('')
+    setChatHistory([])
+    setQuestion('')
+  }
+
+  if (loading) {
+    return <div className="flex items-center justify-center min-h-screen">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
+        <p className="mt-4">Cargando datos desde Excel...</p>
+      </div>
+    </div>
+  }
+
+  if (!metrics) {
+    return <div className="p-8">No hay datos disponibles</div>
+  }
+
+  const distribucionEgresos = [
+    { concepto: 'Costos', valor: metrics.costos, porcentaje: (metrics.costos / metrics.totalEgresos * 100).toFixed(1), color: 'bg-red-500' },
+    { concepto: 'Payroll', valor: metrics.payroll, porcentaje: (metrics.payroll / metrics.totalEgresos * 100).toFixed(1), color: 'bg-blue-500' },
+    { concepto: 'Gastos', valor: metrics.gastos, porcentaje: (metrics.gastos / metrics.totalEgresos * 100).toFixed(1), color: 'bg-yellow-500' }
+  ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 py-6">
@@ -60,16 +102,15 @@ export default function ConucoDashboard() {
             </div>
             <div className="text-right">
               <p className="text-xs text-gray-500">Última actualización</p>
-              <p className="text-sm font-semibold">19 Sep 2025</p>
+              <p className="text-sm font-semibold">{new Date(metrics.timestamp).toLocaleString('es-DO')}</p>
             </div>
           </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* KPIs Principales */}
+        {/* KPIs */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {/* Ventas Totales */}
           <div className="bg-white rounded-xl shadow-lg p-6 border-t-4 border-green-500">
             <div className="flex justify-between items-start mb-3">
               <div className="text-green-600">
@@ -80,11 +121,10 @@ export default function ConucoDashboard() {
               <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">YTD</span>
             </div>
             <p className="text-sm text-gray-600 mb-1">Ventas Totales</p>
-            <p className="text-2xl font-bold text-gray-900">{formatCurrency(datosReales.ventas)}</p>
+            <p className="text-2xl font-bold">{formatCurrency(metrics.ventas)}</p>
             <p className="text-xs text-gray-500 mt-2">52,891 transacciones</p>
           </div>
 
-          {/* Total Egresos */}
           <div className="bg-white rounded-xl shadow-lg p-6 border-t-4 border-red-500">
             <div className="flex justify-between items-start mb-3">
               <div className="text-red-600">
@@ -92,14 +132,15 @@ export default function ConucoDashboard() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">97.09%</span>
+              <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">
+                {((metrics.totalEgresos / metrics.ventas) * 100).toFixed(0)}%
+              </span>
             </div>
             <p className="text-sm text-gray-600 mb-1">Total Egresos</p>
-            <p className="text-2xl font-bold text-gray-900">{formatCurrency(datosReales.totalEgresos)}</p>
+            <p className="text-2xl font-bold">{formatCurrency(metrics.totalEgresos)}</p>
             <p className="text-xs text-gray-500 mt-2">Costos + Gastos + Payroll</p>
           </div>
 
-          {/* Utilidad Bruta */}
           <div className="bg-white rounded-xl shadow-lg p-6 border-t-4 border-blue-500">
             <div className="flex justify-between items-start mb-3">
               <div className="text-blue-600">
@@ -110,11 +151,10 @@ export default function ConucoDashboard() {
               <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">⚠️ Bajo</span>
             </div>
             <p className="text-sm text-gray-600 mb-1">Utilidad Bruta</p>
-            <p className="text-2xl font-bold text-gray-900">{formatCurrency(datosReales.utilidadBruta)}</p>
+            <p className="text-2xl font-bold">{formatCurrency(metrics.utilidadBruta)}</p>
             <p className="text-xs text-gray-500 mt-2">Ventas - Egresos</p>
           </div>
 
-          {/* Rentabilidad */}
           <div className="bg-white rounded-xl shadow-lg p-6 border-t-4 border-purple-500">
             <div className="flex justify-between items-start mb-3">
               <div className="text-purple-600">
@@ -125,68 +165,13 @@ export default function ConucoDashboard() {
               <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded-full">Meta: 5%</span>
             </div>
             <p className="text-sm text-gray-600 mb-1">Rentabilidad</p>
-            <p className="text-2xl font-bold text-gray-900">{datosReales.rentabilidad}%</p>
+            <p className="text-2xl font-bold">{metrics.margenBruto}%</p>
             <p className="text-xs text-red-600 mt-2">⚠️ Por debajo del objetivo</p>
           </div>
         </div>
 
-        {/* Distribución de Egresos y Tendencia de Ventas */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {/* Distribución de Egresos */}
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Distribución de Egresos</h3>
-            <div className="space-y-4">
-              {distribucionEgresos.map((item, index) => (
-                <div key={index}>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-medium text-gray-700">{item.concepto}</span>
-                    <span className="text-sm text-gray-600">{formatCurrency(item.monto)}</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-3">
-                    <div 
-                      className="h-3 rounded-full transition-all duration-500"
-                      style={{ 
-                        width: `${item.porcentaje}%`,
-                        backgroundColor: item.color
-                      }}
-                    ></div>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">{item.porcentaje}% del total</p>
-                </div>
-              ))}
-            </div>
-            <div className="mt-4 pt-4 border-t">
-              <div className="flex justify-between items-center">
-                <span className="font-semibold text-gray-900">Total Egresos</span>
-                <span className="font-bold text-xl text-gray-900">{formatCurrency(datosReales.totalEgresos)}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Ventas Semanales */}
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Ventas Semanales Recientes</h3>
-            <div className="space-y-2">
-              {ventasPorSemana.slice(0, 8).map((semana, index) => (
-                <div key={index} className="flex items-center justify-between py-2 border-b last:border-0">
-                  <div className="flex items-center">
-                    <span className="text-sm font-medium text-gray-700">{semana.semana}</span>
-                    {semana.tipo === 'actual' && (
-                      <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">Actual</span>
-                    )}
-                    {semana.tipo === 'mejor' && (
-                      <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Top</span>
-                    )}
-                  </div>
-                  <span className="font-semibold text-gray-900">{formatCurrency(semana.ventas)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Alerta de Rentabilidad */}
-        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-6 rounded-lg">
+        {/* Análisis de Rentabilidad */}
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-6 rounded-lg mb-8">
           <div className="flex">
             <div className="flex-shrink-0">
               <svg className="h-6 w-6 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -196,12 +181,124 @@ export default function ConucoDashboard() {
             <div className="ml-3">
               <h3 className="text-sm font-bold text-yellow-800">Análisis de Rentabilidad</h3>
               <div className="mt-2 text-sm text-yellow-700">
-                <p>La rentabilidad actual (2.91%) está por debajo del objetivo del 5%. Recomendaciones:</p>
+                <p>La rentabilidad actual ({metrics.margenBruto}%) está por debajo del objetivo del 5%. Recomendaciones:</p>
                 <ul className="list-disc list-inside mt-2">
-                  <li>Los costos representan el 69% de los egresos - revisar proveedores</li>
-                  <li>El payroll es el 18.77% - dentro del rango aceptable</li>
-                  <li>Margen de utilidad: ${formatCurrency(datosReales.utilidadBruta)} de ${formatCurrency(datosReales.ventas)}</li>
+                  <li>Los costos representan el {(metrics.costos / metrics.totalEgresos * 100).toFixed(0)}% de los egresos - revisar proveedores</li>
+                  <li>El payroll es el {(metrics.payroll / metrics.totalEgresos * 100).toFixed(1)}% - dentro del rango aceptable</li>
+                  <li>Margen de utilidad: {formatCurrency(metrics.utilidadBruta)} de {formatCurrency(metrics.ventas)}</li>
                 </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Contenido principal con CFO Chat */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Columna izquierda - Métricas */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Distribución de Egresos */}
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h3 className="text-lg font-bold text-gray-900 mb-4">Distribución de Egresos</h3>
+              <div className="space-y-4">
+                {distribucionEgresos.map((item, index) => (
+                  <div key={index}>
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm font-medium text-gray-700">{item.concepto}</span>
+                      <span className="text-sm text-gray-600">{formatCurrency(item.valor)}</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-3">
+                      <div 
+                        className={`${item.color} h-3 rounded-full transition-all duration-500`}
+                        style={{ width: `${item.porcentaje}%` }}
+                      ></div>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">{item.porcentaje}% del total</p>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 pt-4 border-t">
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold text-gray-900">Total Egresos</span>
+                  <span className="font-bold text-xl">{formatCurrency(metrics.totalEgresos)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Columna derecha - CFO Chat */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-xl shadow-lg p-6 sticky top-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-bold text-gray-900 flex items-center">
+                  <svg className="w-6 h-6 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                  CFO Virtual
+                </h3>
+                {chatHistory.length > 0 && (
+                  <button onClick={clearChat} className="text-xs text-red-600 hover:underline">
+                    Limpiar
+                  </button>
+                )}
+              </div>
+              
+              <div className="space-y-4">
+                {/* Historial */}
+                {chatHistory.length > 0 && (
+                  <div className="bg-gray-50 rounded-lg p-3 max-h-32 overflow-y-auto text-xs">
+                    {chatHistory.map((item, i) => (
+                      <div key={i} className="mb-2 pb-2 border-b">
+                        <p className="text-purple-600">{item.time} - {item.q}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                {/* Respuesta actual */}
+                <div className="bg-gray-50 rounded-lg p-4 min-h-[100px] max-h-64 overflow-y-auto">
+                  {cfoResponse ? (
+                    <div className="text-sm text-gray-700">{cfoResponse}</div>
+                  ) : (
+                    <p className="text-sm text-gray-500">Hola. El margen neto actual de El Conuco de Mamá es del {metrics.margenBruto}%, por debajo de la meta del 5%. Se debe trabajar en reducir los costos y gastos para mejorar la rentabilidad de la empresa.</p>
+                  )}
+                </div>
+                
+                {/* Input */}
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    value={question}
+                    onChange={(e) => setQuestion(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && askCFO()}
+                    placeholder="Pregunta sobre tus métricas..."
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                  <button
+                    onClick={askCFO}
+                    disabled={askingCFO || !question.trim()}
+                    className="w-full bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 disabled:bg-gray-400"
+                  >
+                    {askingCFO ? 'Analizando...' : 'Preguntar'}
+                  </button>
+                </div>
+                
+                {/* Sugerencias */}
+                <div className="border-t pt-3">
+                  <p className="text-xs text-gray-500 mb-2">Preguntas sugeridas:</p>
+                  <div className="space-y-1">
+                    {[
+                      '¿Cuál es mi margen de utilidad?',
+                      '¿Cuál producto se vende más?',
+                      '¿Cómo puedo mejorar la rentabilidad?'
+                    ].map((q, i) => (
+                      <button 
+                        key={i}
+                        onClick={() => setQuestion(q)}
+                        className="text-xs text-purple-600 hover:underline block text-left"
+                      >{q}</button>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
